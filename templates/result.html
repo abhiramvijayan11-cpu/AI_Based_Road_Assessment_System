@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Road Assessment Result</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <h1>🚧 Road Assessment Result</h1>
+
+        <img
+            src="{{ url_for('uploaded_file', filename=image) }}"
+            class="result-image"
+            alt="Uploaded Road Image">
+
+        <table class="result-table">
+
+            <tr>
+                <td><strong>Prediction</strong></td>
+                <td>{{ prediction }}</td>
+            </tr>
+
+            <tr>
+                <td><strong>Confidence</strong></td>
+                <td>{{ confidence }}%</td>
+            </tr>
+
+            <tr>
+                <td><strong>Road Health</strong></td>
+                <td>{{ health }}</td>
+            </tr>
+
+            <tr>
+                <td><strong>Severity</strong></td>
+                <td>{{ severity }}</td>
+            </tr>
+
+            <tr>
+                <td><strong>Recommendation</strong></td>
+                <td>{{ recommendation }}</td>
+            </tr>
+
+        </table>
+
+        <br>
+
+        <a href="/">
+            <button>
+                ⬅ Analyze Another Image
+            </button>
+        </a>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

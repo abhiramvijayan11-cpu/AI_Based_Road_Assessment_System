@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>
+AI Road Assessment Dashboard
+</title>
+
+
+<link rel="stylesheet"
+href="{{ url_for('static', filename='css/style.css') }}">
+
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<h1>
+🚧 AI Based Road Assessment System
+</h1>
+
+
+
+<!-- ==========================
+STATISTICS
+========================== -->
+
+
+<div class="dashboard-cards">
+
+
+<div class="stat-card">
+
+<h2>
+{{total}}
+</h2>
+
+<p>
+Total Road Scans
+</p>
+
+</div>
+
+
+
+<div class="stat-card green">
+
+<h2>
+{{healthy_count}}
+</h2>
+
+<p>
+Healthy Roads
+</p>
+
+</div>
+
+
+
+
+<div class="stat-card red">
+
+<h2>
+{{damaged_count}}
+</h2>
+
+<p>
+Damaged Roads
+</p>
+
+</div>
+
+
+
+
+
+<div class="stat-card">
+
+<h2>
+{{avg_confidence}}%
+</h2>
+
+<p>
+AI Confidence
+</p>
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+<!-- ==========================
+UPLOAD IMAGE
+========================== -->
+
+
+<div class="result-box">
+
+
+<h2>
+🔍 Analyze New Road Image
+</h2>
+
+
+<form action="/predict"
+method="POST"
+enctype="multipart/form-data">
+
+
+<input 
+type="file"
+name="road_image"
+accept="image/*"
+required>
+
+
+<br><br>
+
+
+<button type="submit">
+
+Analyze Road
+
+</button>
+
+
+</form>
+
+
+</div>
+
+
+
+
+
+
+<!-- ==========================
+LATEST RESULT
+========================== -->
+
+
+{% if latest %}
+
+
+<div class="result-box">
+
+
+<h2>
+Latest Assessment
+</h2>
+
+
+<p>
+<strong>AI Prediction:</strong>
+
+{{latest["ai_prediction"]}}
+
+</p>
+
+
+
+<p>
+<strong>Confidence:</strong>
+
+{{latest["confidence"]}} %
+
+</p>
+
+
+
+<p>
+<strong>Severity:</strong>
+
+{{latest["severity"]}}
+
+</p>
+
+
+
+<p>
+<strong>Recommendation:</strong>
+
+{{latest["recommendation"]}}
+
+</p>
+
+
+<p>
+
+<strong>Date:</strong>
+
+{{latest["timestamp"]}}
+
+</p>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+
+
+
+<!-- ==========================
+RECENT RECORDS
+========================== -->
+
+
+<h2>
+Recent Road Reports
+</h2>
+
+
+
+<table>
+
+
+<tr>
+
+<th>ID</th>
+
+<th>Prediction</th>
+
+<th>Confidence</th>
+
+<th>Severity</th>
+
+<th>Health</th>
+
+<th>Date</th>
+
+</tr>
+
+
+
+{% for row in records %}
+
+
+<tr>
+
+
+<td>
+{{row["id"]}}
+</td>
+
+
+<td>
+{{row["ai_prediction"]}}
+</td>
+
+
+
+<td>
+{{row["confidence"]}}%
+</td>
+
+
+
+<td>
+{{row["severity"]}}
+</td>
+
+
+
+<td>
+{{row["road_health"]}}
+</td>
+
+
+
+<td>
+{{row["timestamp"]}}
+</td>
+
+
+</tr>
+
+
+{% endfor %}
+
+
+
+</table>
+
+
+
+<br><br>
+
+
+<a href="/map">
+
+<button>
+🗺 Open Road Map
+</button>
+
+</a>
+
+
+
+</div>
+
+
+</body>
+
+</html>

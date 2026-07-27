@@ -1,0 +1,287 @@
+/* ==========================================
+   GLOBAL STYLE
+========================================== */
+
+body {
+
+    font-family: Arial, sans-serif;
+
+    background: #f2f5f7;
+
+    margin: 0;
+
+}
+
+
+/* ==========================================
+   CONTAINER
+========================================== */
+
+.container {
+
+    width: 90%;
+
+    margin: auto;
+
+    padding: 30px;
+
+}
+
+
+
+/* ==========================================
+   TITLE
+========================================== */
+
+h1 {
+
+    text-align: center;
+
+    color: #1f2937;
+
+}
+
+
+
+/* ==========================================
+   DASHBOARD STAT CARDS
+========================================== */
+
+
+.dashboard-cards {
+
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 20px;
+
+    margin: 30px 0;
+
+}
+
+
+
+.stat-card {
+
+    background: white;
+
+    padding: 25px;
+
+    border-radius: 15px;
+
+    text-align: center;
+
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+
+}
+
+
+
+.stat-card h2 {
+
+    font-size: 35px;
+
+    margin: 0;
+
+    color: #2563eb;
+
+}
+
+
+
+.stat-card p {
+
+    font-size: 16px;
+
+    color: #555;
+
+}
+
+
+
+/* Card colors */
+
+.stat-card:nth-child(1) {
+
+    border-left: 8px solid #2563eb;
+
+}
+
+
+
+.green {
+
+    border-left: 8px solid green;
+
+}
+
+
+
+.red {
+
+    border-left: 8px solid red;
+
+}
+
+
+
+.stat-card:nth-child(4) {
+
+    border-left: 8px solid purple;
+
+}
+
+
+
+/* ==========================================
+   RESULT BOX
+========================================== */
+
+
+.result-box {
+
+    background: white;
+
+    padding: 25px;
+
+    margin-top: 30px;
+
+    border-radius: 15px;
+
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+
+}
+
+
+
+.result-box img {
+
+    width:300px;
+
+    max-width:100%;
+
+    border-radius:10px;
+
+}
+
+
+
+/* ==========================================
+   BUTTON
+========================================== */
+
+
+button {
+
+    background:#2563eb;
+
+    color:white;
+
+    border:none;
+
+    padding:12px 25px;
+
+    border-radius:10px;
+
+    font-size:16px;
+
+    cursor:pointer;
+
+}
+
+
+
+button:hover {
+
+    background:#1d4ed8;
+
+}
+
+
+
+/* ==========================================
+   TABLE
+========================================== */
+
+
+table {
+
+    width:100%;
+
+    background:white;
+
+    margin-top:30px;
+
+    border-collapse:collapse;
+
+    border-radius:10px;
+
+    overflow:hidden;
+
+}
+
+
+
+th {
+
+    background:#2563eb;
+
+    color:white;
+
+}
+
+
+
+th, td {
+
+    padding:12px;
+
+    border-bottom:1px solid #ddd;
+
+    text-align:center;
+
+}
+
+
+
+/* ==========================================
+   MOBILE RESPONSIVE
+========================================== */
+
+
+@media(max-width:900px){
+
+
+    .dashboard-cards {
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+
+}
+
+
+
+@media(max-width:500px){
+
+
+    .dashboard-cards {
+
+        grid-template-columns:1fr;
+
+    }
+
+
+
+    .container {
+
+        width:95%;
+
+        padding:15px;
+
+    }
+
+
+}

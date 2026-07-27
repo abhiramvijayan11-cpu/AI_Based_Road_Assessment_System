@@ -1,0 +1,27 @@
+# Virtual environments
+.venv/
+road_ai_env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Database
+data/database.db
+
+# Uploaded images
+uploads/
+
+# Datasets
+dataset/
+dataset_split/
+blurred_images/
+
+# VS Code
+.vscode/
+
+# Environment variables
+.env
+
+# Logs
+*.log
