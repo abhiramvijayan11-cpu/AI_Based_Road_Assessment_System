@@ -1,354 +1,295 @@
 <!DOCTYPE html>
-
 <html>
 
 <head>
 
-<title>
-Road Health Map
-</title>
-
-
-<meta charset="UTF-8">
-
+<title>Live Road Assessment Map</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-
-<link rel="stylesheet"
-href="{{ url_for('static', filename='css/style.css') }}">
-
+<link
+rel="stylesheet"
+href="https://unpkg.com/leaflet/dist/leaflet.css"
+/>
 
 <style>
 
-#map{
-
-height:600px;
-
-width:100%;
-
-border-radius:15px;
-
+body{
+margin:0;
+padding:0;
 }
 
-
-.legend{
-
-background:white;
-
-padding:15px;
-
-margin-top:20px;
-
-border-radius:10px;
-
-box-shadow:0 4px 10px #ccc;
-
+#map{
+height:100vh;
+width:100%;
 }
 
 </style>
 
-
 </head>
-
-
 
 <body>
 
-
-<div class="container">
-
-
-<h1>
-🗺 AI Road Health Monitoring Map
-</h1>
-
-
 <div id="map"></div>
 
-
-
-<div class="legend">
-
-<p>🟢 Healthy Road</p>
-
-<p>🔴 Damaged Road</p>
-
-<p>🟡 Moderate Road</p>
-
-</div>
-
-
-
-</div>
-
-
-
-
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
+// =======================================
+// CREATE MAP
+// =======================================
 
-let map;
+let map = L.map('map').setView([9.9676839,76.3298908],15);
 
-
-
-function initMap(){
-
-
-map = new google.maps.Map(
-
-document.getElementById("map"),
-
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 {
-
-zoom:16,
-
-
-center:{
-
-lat:9.9677,
-
-lng:76.3299
-
+maxZoom:19
 }
-
-}
-
-);
+).addTo(map);
 
 
+// =======================================
+// VARIABLES
+// =======================================
 
-loadMarkers();
+let markers = [];
 
-
-}
-
-
-
-
-
-function loadMarkers(){
+let currentMarker = null;
 
 
-fetch("/map_data")
+// =======================================
+// LOAD ALL ROAD MARKERS
+// =======================================
 
+function loadRoadData(){
+
+fetch("/map_history")
 
 .then(response=>response.json())
 
-
 .then(data=>{
-
 
 console.log(data);
 
+// Remove previous history markers
 
+markers.forEach(marker=>{
 
-data.forEach(point=>{
+map.removeLayer(marker);
 
+});
 
+markers=[];
 
-// Ignore invalid GPS
-
-if(point.latitude == null || point.longitude == null)
-
-{
+if(data.length==0){
 
 return;
 
 }
 
+// Draw all road points
 
+data.forEach(point=>{
 
+let color="green";
 
-let color;
-
-
-
-// Select marker colour
-
-
-if(
-
-(point.prediction && point.prediction.includes("Damaged"))
-
-||
-
-(point.ai_prediction && point.ai_prediction.includes("Damaged"))
-
-||
-
-(point.severity=="High")
-
-||
-
-(point.severity=="Very High")
-
-)
-
-{
+if(point.health_score<70){
 
 color="red";
 
 }
 
+else if(point.health_score<85){
 
-else if(point.severity=="Moderate")
-
-{
-
-color="yellow";
+color="orange";
 
 }
 
+let marker=L.circleMarker(
 
-else
+[point.latitude,point.longitude],
 
 {
 
-color="green";
+radius:8,
+
+color:color,
+
+fillColor:color,
+
+fillOpacity:0.8
 
 }
 
+).addTo(map);
 
 
-let marker = new google.maps.Marker({
-
-
-position:{
-
-lat:Number(point.latitude),
-
-lng:Number(point.longitude)
-
-},
-
-
-map:map,
-
-
-icon:
-
-{
-
-url:
-
-"https://maps.google.com/mapfiles/ms/icons/"+color+"-dot.png"
-
-},
-
-
-
-title:
-
-point.prediction
-
-
-
-});
-
-
-
-
-
-let infoWindow = new google.maps.InfoWindow({
-
-
-content:
-
+marker.bindPopup(
 
 `
 
-<h3>
-Road Assessment
-</h3>
+<b>Road:</b> ${point.road_name || "Unknown"}
 
+<br>
 
-<p>
-<b>Prediction:</b>
-${point.prediction || "Sensor Data"}
+<b>Area:</b> ${point.area || "Unknown"}
 
-</p>
+<br>
 
+<b>City:</b> ${point.city || "Unknown"}
 
-<p>
-<b>Health:</b>
-${point.road_health || "Unknown"}
+<br>
 
-</p>
+<b>Status:</b> ${point.road_health}
 
+<br>
 
-<p>
-<b>Severity:</b>
-${point.severity || "None"}
+<b>Health Score:</b> ${point.health_score}
 
-</p>
+<br>
 
+<b>Vibration:</b> ${point.vibration}
 
+<br>
+
+<b>Speed:</b> ${point.speed}
+
+<br>
+
+<b>Time:</b> ${point.timestamp}
 
 `
 
-});
-
-
-
-
-
-marker.addListener(
-
-"click",
-
-()=>{
-
-
-infoWindow.open(
-
-map,
-
-marker
-
 );
 
-
-}
-
-);
-
-
+markers.push(marker);
 
 });
 
-
-
-})
-
-
-.catch(error=>{
-
-console.log(error);
-
 });
-
 
 }
 
 
 
+// =======================================
+// LIVE VEHICLE LOCATION
+// =======================================
+
+function updateCurrentLocation(){
+
+fetch("/latest_location")
+
+.then(response=>response.json())
+
+.then(point=>{
+
+if(!point.latitude){
+
+return;
+
+}
+
+let lat=point.latitude;
+
+let lon=point.longitude;
+
+
+// First time create marker
+
+if(currentMarker==null){
+
+currentMarker=L.marker([lat,lon]).addTo(map);
+
+}
+
+
+// Move marker
+
+currentMarker.setLatLng([lat,lon]);
+
+
+// Follow vehicle
+
+map.setView([lat,lon],16);
+
+
+// Popup
+
+currentMarker.bindPopup(
+
+`
+
+<b>🚗 Current Vehicle</b>
+
+<br><br>
+
+<b>Road:</b> ${point.road_name}
+
+<br>
+
+<b>Area:</b> ${point.area}
+
+<br>
+
+<b>City:</b> ${point.city}
+
+<br>
+
+<b>Status:</b> ${point.road_health}
+
+<br>
+
+<b>Health Score:</b> ${point.health_score}
+
+<br>
+
+<b>Vibration:</b> ${point.vibration}
+
+<br>
+
+<b>Speed:</b> ${point.speed}
+
+<br>
+
+<b>Time:</b> ${point.timestamp}
+
+`
+
+);
+
+});
+
+}
+
+
+
+// =======================================
+// INITIAL LOAD
+// =======================================
+
+loadRoadData();
+
+updateCurrentLocation();
+
+
+
+// =======================================
+// AUTO REFRESH
+// =======================================
+
+setInterval(function(){
+
+loadRoadData();
+
+updateCurrentLocation();
+
+},5000);
 
 </script>
-
-
-
-
-
-<script async
-
-src="https://maps.googleapis.com/maps/api/js?callback=initMap">
-
-</script>
-
 
 </body>
-
 
 </html>

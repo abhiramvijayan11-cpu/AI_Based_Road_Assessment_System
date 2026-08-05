@@ -229,61 +229,68 @@ Recent Road Reports
 </h2>
 
 
-
 <table>
 
 
 <tr>
 
-<th>ID</th>
+<th>Road Name</th>
 
-<th>Prediction</th>
+<th>Area</th>
 
-<th>Confidence</th>
+<th>City</th>
 
-<th>Severity</th>
+<th>Health Score</th>
 
-<th>Health</th>
+<th>Road Status</th>
 
-<th>Date</th>
+<th>Vibration</th>
+
+<th>Speed</th>
+
+<th>Time</th>
 
 </tr>
 
 
-
 {% for row in records %}
-
 
 <tr>
 
 
 <td>
-{{row["id"]}}
+{{row["road_name"]}}
 </td>
 
 
 <td>
-{{row["ai_prediction"]}}
+{{row["area"]}}
 </td>
-
 
 
 <td>
-{{row["confidence"]}}%
+{{row["city"]}}
 </td>
-
 
 
 <td>
-{{row["severity"]}}
+{{row["health_score"]}}
 </td>
-
 
 
 <td>
 {{row["road_health"]}}
 </td>
 
+
+<td>
+{{row["vibration"]}}
+</td>
+
+
+<td>
+{{row["speed"]}}
+</td>
 
 
 <td>
@@ -296,9 +303,11 @@ Recent Road Reports
 
 {% endfor %}
 
-
-
 </table>
+
+
+
+
 
 
 
