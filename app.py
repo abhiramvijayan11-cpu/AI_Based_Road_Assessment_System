@@ -1066,23 +1066,29 @@ def upload():
 
     return jsonify({
 
-        "status":"success",
+    "status": "success",
 
-        "message":"Data Stored Successfully",
+    "message": "Data Stored Successfully",
 
-        "health_score":health_score,
+    "health_score": health_score,
 
-        "road_health":road_health,
+    "road_health": road_health,
 
-        "vibration": vibration,
+    "vibration": vibration,
 
     "road_name": road_name,
 
     "area": area,
 
-    "city": city
+    "city": city,
 
-    })
+    "speed": speed,
+
+    "latitude": latitude,
+
+    "longitude": longitude
+
+})
 @app.route("/view")
 
 def view():
