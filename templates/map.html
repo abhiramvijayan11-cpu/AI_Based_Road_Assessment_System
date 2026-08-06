@@ -3,20 +3,20 @@
 
 <head>
 
-<title>Live Road Assessment Map</title>
-
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link
-rel="stylesheet"
-href="https://unpkg.com/leaflet/dist/leaflet.css"
-/>
+<title>Live Road Assessment Map</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
 
-body{
+html,body{
 margin:0;
 padding:0;
+height:100%;
 }
 
 #map{
@@ -36,11 +36,11 @@ width:100%;
 
 <script>
 
-// =======================================
+// ======================================
 // CREATE MAP
-// =======================================
+// ======================================
 
-let map = L.map('map').setView([9.9676839,76.3298908],15);
+const map = L.map("map").setView([9.96768,76.32989],15);
 
 L.tileLayer(
 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -50,133 +50,130 @@ maxZoom:19
 ).addTo(map);
 
 
-// =======================================
+// ======================================
 // VARIABLES
-// =======================================
+// ======================================
 
-let markers = [];
-
+let roadLines = [];
+let loadedSegments = new Set();
 let currentMarker = null;
 
 
-// =======================================
-// LOAD ALL ROAD MARKERS
-// =======================================
+// ======================================
+// ROAD COLOR
+// ======================================
 
-function loadRoadData(){
+function getColor(score){
 
-fetch("/map_history")
+    if(score >= 90)
+        return "#00C853";
 
-.then(response=>response.json())
+    if(score >= 70)
+        return "#FFD600";
+
+    if(score >= 40)
+        return "#FF9100";
+
+    return "#D50000";
+
+}
+
+
+// ======================================
+// LOAD ROAD SEGMENTS
+// ======================================
+
+function loadRoadSegments(){
+
+fetch("/road_segments")
+
+.then(response => response.json())
 
 .then(data=>{
 
-console.log(data);
-
-// Remove previous history markers
-
-markers.forEach(marker=>{
-
-map.removeLayer(marker);
-
-});
-
-markers=[];
-
-if(data.length==0){
-
-return;
-
-}
-
-// Draw all road points
-
-data.forEach(point=>{
-
-let color="green";
-
-if(point.health_score<70){
-
-color="red";
-
-}
-
-else if(point.health_score<85){
-
-color="orange";
-
-}
-
-let marker=L.circleMarker(
-
-[point.latitude,point.longitude],
-
-{
-
-radius:8,
-
-color:color,
-
-fillColor:color,
-
-fillOpacity:0.8
-
-}
-
-).addTo(map);
+    if(data.length < 2)
+        return;
 
 
-marker.bindPopup(
+    for(let i=data.length-1;i>0;i--){
 
-`
+        const p1=data[i];
+        const p2=data[i-1];
 
-<b>Road:</b> ${point.road_name || "Unknown"}
 
-<br>
+        // Unique ID for every road segment
 
-<b>Area:</b> ${point.area || "Unknown"}
+        const segmentId =
+        p1.latitude + "," +
+        p1.longitude + "," +
+        p2.latitude + "," +
+        p2.longitude;
 
-<br>
 
-<b>City:</b> ${point.city || "Unknown"}
+        // Already drawn
 
-<br>
+        if(loadedSegments.has(segmentId))
+            continue;
 
-<b>Status:</b> ${point.road_health}
 
-<br>
+        loadedSegments.add(segmentId);
 
-<b>Health Score:</b> ${point.health_score}
 
-<br>
+        const line = L.polyline(
 
-<b>Vibration:</b> ${point.vibration}
+        [
+            [p1.latitude,p1.longitude],
+            [p2.latitude,p2.longitude]
+        ],
 
-<br>
+        {
 
-<b>Speed:</b> ${point.speed}
+            color:getColor(p1.health_score),
 
-<br>
+            weight:8,
 
-<b>Time:</b> ${point.timestamp}
+            opacity:0.9
 
-`
+        }
 
-);
+        ).addTo(map);
 
-markers.push(marker);
 
-});
+        line.bindPopup(
+
+        `
+        <b>Road :</b> ${p1.road_name}<br>
+
+        <b>Area :</b> ${p1.area}<br>
+
+        <b>City :</b> ${p1.city}<br>
+
+        <b>Status :</b> ${p1.road_health}<br>
+
+        <b>Health Score :</b> ${p1.health_score}%<br>
+
+        <b>Vibration :</b> ${Number(p1.vibration).toFixed(2)}<br>
+
+        <b>Speed :</b> ${Number(p1.speed).toFixed(2)} km/h<br>
+
+        <b>Time :</b> ${p1.timestamp}
+
+        `
+
+        );
+
+        roadLines.push(line);
+
+    }
 
 });
 
 }
 
 
-
-// =======================================
-// LIVE VEHICLE LOCATION
-// =======================================
+// ======================================
+// LIVE VEHICLE
+// ======================================
 
 function updateCurrentLocation(){
 
@@ -186,107 +183,124 @@ fetch("/latest_location")
 
 .then(point=>{
 
-if(!point.latitude){
-
-return;
-
-}
-
-let lat=point.latitude;
-
-let lon=point.longitude;
+    if(!point.latitude)
+        return;
 
 
-// First time create marker
-
-if(currentMarker==null){
-
-currentMarker=L.marker([lat,lon]).addTo(map);
-
-}
+    const pos=[point.latitude,point.longitude];
 
 
-// Move marker
+    // First time
 
-currentMarker.setLatLng([lat,lon]);
+    if(currentMarker==null){
+
+        currentMarker=L.marker(pos).addTo(map);
+
+    }
 
 
-// Follow vehicle
+    // Move marker
 
-map.setView([lat,lon],16);
+    currentMarker.setLatLng(pos);
 
 
-// Popup
+    currentMarker.bindPopup(
 
-currentMarker.bindPopup(
+    `
 
-`
+    <b>🚗 Current Vehicle</b>
 
-<b>🚗 Current Vehicle</b>
+    <br><br>
 
-<br><br>
+    <b>Road :</b> ${point.road_name}
 
-<b>Road:</b> ${point.road_name}
+    <br>
 
-<br>
+    <b>Area :</b> ${point.area}
 
-<b>Area:</b> ${point.area}
+    <br>
 
-<br>
+    <b>City :</b> ${point.city}
 
-<b>City:</b> ${point.city}
+    <br>
 
-<br>
+    <b>Status :</b> ${point.road_health}
 
-<b>Status:</b> ${point.road_health}
+    <br>
 
-<br>
+    <b>Health :</b> ${point.health_score}%
 
-<b>Health Score:</b> ${point.health_score}
+    <br>
 
-<br>
+    <b>Speed :</b> ${Number(point.speed).toFixed(2)} km/h
 
-<b>Vibration:</b> ${point.vibration}
+    <br>
 
-<br>
+    <b>Vibration :</b> ${Number(point.vibration).toFixed(2)}
 
-<b>Speed:</b> ${point.speed}
+    `
 
-<br>
+    );
 
-<b>Time:</b> ${point.timestamp}
 
-`
+    // Follow only if marker leaves screen
 
-);
+    if(!map.getBounds().contains(pos)){
+
+        map.panTo(
+
+            pos,
+
+            {
+
+                animate:true,
+
+                duration:1
+
+            }
+
+        );
+
+    }
 
 });
 
 }
 
 
-
-// =======================================
+// ======================================
 // INITIAL LOAD
-// =======================================
+// ======================================
 
-loadRoadData();
+loadRoadSegments();
 
 updateCurrentLocation();
 
 
-
-// =======================================
+// ======================================
 // AUTO REFRESH
-// =======================================
+// ======================================
 
-setInterval(function(){
+// Road updates every 15 sec
 
-loadRoadData();
+setInterval(
 
-updateCurrentLocation();
+loadRoadSegments,
 
-},5000);
+15000
+
+);
+
+
+// Vehicle updates every 2 sec
+
+setInterval(
+
+updateCurrentLocation,
+
+2000
+
+);
 
 </script>
 

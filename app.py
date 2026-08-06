@@ -845,12 +845,6 @@ def uploaded_file(filename):
 # ==========================================
 # ANDROID SENSOR API
 # ==========================================
-
-
-@app.route("/upload", methods=["POST"])
-@app.route("/upload", methods=["POST"])
-
-@app.route("/upload", methods=["POST"])
 @app.route("/upload", methods=["POST"])
 def upload():
 
@@ -1145,34 +1139,27 @@ def map_data():
     conn.row_factory = sqlite3.Row
 
     cur = conn.cursor()
-
-
     cur.execute("""
-
     SELECT
-
-    latitude,
-    longitude,
-
-    road_name,
-    area,
-    city,
-
-    health_score,
-    road_health,
-
-    vibration,
-    speed,
-
-    timestamp
-
+        id,
+        latitude,
+        longitude,
+        road_name,
+        area,
+        city,
+        health_score,
+        road_health,
+        vibration,
+        speed,
+        timestamp
     FROM road_data
-
-    ORDER BY id DESC
-
-    LIMIT 50
-
-    """)
+    WHERE latitude IS NOT NULL
+      AND longitude IS NOT NULL
+      AND latitude != 0
+      AND longitude != 0
+    ORDER BY id ASC
+    LIMIT 500
+""")
 
 
     rows = cur.fetchall()
@@ -1217,6 +1204,43 @@ def map_data():
 
     return jsonify(data)
 
+
+@app.route("/road_segments")
+def road_segments():
+
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            latitude,
+            longitude,
+            health_score,
+            road_health,
+            road_name,
+            area,
+            city,
+            speed,
+            vibration,
+            timestamp
+
+        FROM road_data
+
+        ORDER BY id DESC
+
+        LIMIT 300
+    """)
+
+    rows = cur.fetchall()
+
+    # Reverse so points go from oldest → newest
+    rows = rows[::-1]
+
+    conn.close()
+
+    return jsonify([dict(row) for row in rows])
 
 # ==========================================
 # MAP PAGE

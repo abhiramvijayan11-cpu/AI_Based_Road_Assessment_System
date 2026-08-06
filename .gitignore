@@ -8,6 +8,7 @@ __pycache__/
 
 # Database
 data/database.db
+*.db
 
 # Uploaded images
 uploads/
