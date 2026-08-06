@@ -1,13 +1,23 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+
+import json
 import sqlite3
 import os
 import requests
 GEOAPIFY_API_KEY = "7a17aa6f86fa48f4933664b89e1fea37"
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
+from flask import Flask, render_template, request, jsonify, send_from_directory
+from osm import get_nearest_road
 from werkzeug.utils import secure_filename
+from osm import find_nearest_segment
+from datetime import datetime
 
 from predict import analyze_road
+from osm import (
+    get_nearest_road,
+    get_road_geometry,
+    parse_road_geometry
+)
 
 
 # ==========================================
@@ -826,32 +836,15 @@ def predict():
 # SHOW UPLOADED IMAGE
 # ==========================================
 
-
-@app.route("/uploads/<filename>")
-
-def uploaded_file(filename):
-
-    return send_from_directory(
-
-        app.config["UPLOAD_FOLDER"],
-
-        filename
-
-    )
-
-
-
-
-# ==========================================
-# ANDROID SENSOR API
-# ==========================================
 @app.route("/upload", methods=["POST"])
 def upload():
 
     data = request.get_json()
 
+
     print("\n========== RECEIVED SENSOR DATA ==========")
     print(data)
+
 
 
     # ==============================
@@ -862,9 +855,8 @@ def upload():
     longitude = data["longitude"]
 
     speed = data["speed"]
-
-    # Android already removed gravity
     vibration = data["vibration"]
+
 
 
     print("Latitude:", latitude)
@@ -872,42 +864,52 @@ def upload():
     print("Speed:", speed)
     print("Vibration:", vibration)
 
+
+
     # ==============================
-# CALCULATE ROAD HEALTH
-# ==============================
+    # CALCULATE ROAD HEALTH
+    # ==============================
 
     if vibration < 2:
+
         health_score = 95
         road_health = "Excellent 🟢"
 
 
     elif vibration < 4:
+
         health_score = 85
         road_health = "Good 🟢"
 
 
     elif vibration < 7:
+
         health_score = 70
         road_health = "Slight Damage 🟡"
 
 
     elif vibration < 10:
+
         health_score = 50
         road_health = "Moderate Damage 🟠"
 
 
     elif vibration < 13:
+
         health_score = 30
         road_health = "Poor 🔴"
 
 
     else:
+
         health_score = 15
         road_health = "Critical 🔴"
 
+
+
     print("--------------------------------")
-    print("Calculated Health Score:", health_score)
-    print("Calculated Road Status:", road_health)
+    print("Health Score:", health_score)
+    print("Road Status:", road_health)
     print("--------------------------------")
 
 
@@ -916,36 +918,89 @@ def upload():
     # CHECK GPS
     # ==============================
 
-
     if latitude == 0 or longitude == 0:
+        print("⚠ Invalid GPS received. Ignoring data.")
 
         return jsonify({
 
-            "status":"error",
+        "status":"ignored",
 
-            "message":"Invalid GPS location"
+        "message":"Waiting for valid GPS"
 
-        })
+    })
 
 
 
     # ==============================
-    # GET LOCATION DETAILS
+    # OPENSTREETMAP ROAD MATCHING
     # ==============================
 
-
-    location = get_location_details(
+    osm_data = get_nearest_road(
         latitude,
         longitude
     )
 
 
-    road_name = location["road_name"]
+    road_id = osm_data["road_id"]
+
+    osm_road_name = osm_data["road_name"]
+
+
+
+    print("==============================")
+    print("OSM ROAD ID:", road_id)
+    print("OSM ROAD NAME:", osm_road_name)
+    print("==============================")
+
+
+
+    # ==============================
+    # FIND NEAREST ROAD SEGMENT
+    # ==============================
+
+
+    segment_number = find_nearest_segment(
+
+        latitude,
+
+        longitude,
+
+        road_id
+
+    )
+
+
+    print("==============================")
+    print("UPDATING SEGMENT:", segment_number)
+    print("==============================")
+
+
+
+    # ==============================
+    # LOCATION DETAILS
+    # ==============================
+
+
+    location = get_location_details(
+
+        latitude,
+
+        longitude
+
+    )
+
+
     area = location["area"]
+
     city = location["city"]
+
     state = location["state"]
+
     country = location["country"]
 
+
+
+    road_name = osm_road_name
 
 
 
@@ -961,7 +1016,7 @@ def upload():
 
 
     # ==============================
-    # INSERT ROAD DATA
+    # STORE SENSOR DATA
     # ==============================
 
 
@@ -974,6 +1029,9 @@ def upload():
     latitude,
     longitude,
 
+    road_id,
+    road_geometry,
+    geometry_cached,
 
     road_name,
     area,
@@ -981,30 +1039,23 @@ def upload():
     state,
     country,
 
-
     speed,
     vibration,
-
 
     health_score,
     road_health,
 
-
     ai_prediction,
     confidence,
 
-
     severity,
     recommendation,
-
 
     image_path
 
     )
 
-
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 
     """,
 
@@ -1013,27 +1064,41 @@ def upload():
     latitude,
     longitude,
 
+    str(road_id),
+
+    "",
+
+    0,
+
 
     road_name,
+
     area,
+
     city,
+
     state,
+
     country,
 
 
     speed,
+
     vibration,
 
 
     health_score,
+
     road_health,
 
 
     "",
+
     0,
 
 
     "",
+
     "",
 
 
@@ -1043,9 +1108,150 @@ def upload():
 
 
 
+
+
     # ==============================
-    # SAVE DATABASE
+    # UPDATE ROAD SEGMENT HEALTH
     # ==============================
+
+
+    cur.execute(
+
+    """
+
+    SELECT
+
+    average_health,
+    total_scans
+
+
+    FROM road_segments
+
+
+    WHERE road_id=?
+
+    AND segment_number=?
+
+
+    """,
+
+    (
+
+    str(road_id),
+
+    segment_number
+
+    )
+
+    )
+
+
+    segment_data = cur.fetchone()
+
+
+
+    if segment_data:
+
+
+        old_health = segment_data[0]
+
+        old_scans = segment_data[1]
+
+
+
+        new_scans = old_scans + 1
+
+
+
+        new_health = (
+
+            (old_health * old_scans)
+
+            +
+
+            health_score
+
+        ) / new_scans
+
+
+
+        if new_health >= 90:
+
+            status = "Excellent 🟢"
+
+
+        elif new_health >= 70:
+
+            status = "Good 🟢"
+
+
+        elif new_health >= 40:
+
+            status = "Moderate 🟠"
+
+
+        else:
+
+            status = "Poor 🔴"
+
+
+
+
+        cur.execute(
+
+        """
+
+        UPDATE road_segments
+
+
+        SET
+
+        average_health=?,
+
+        total_scans=?,
+
+        status=?,
+
+        last_update=?
+
+
+        WHERE road_id=?
+
+        AND segment_number=?
+
+
+        """,
+
+        (
+
+        new_health,
+
+        new_scans,
+
+        status,
+
+        datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+
+
+        str(road_id),
+
+        segment_number
+
+        )
+
+        )
+
+
+        print("✓ Segment Health Updated")
+
+
+
+    else:
+
+        print("⚠ Segment not found")
+
 
 
     conn.commit()
@@ -1060,29 +1266,23 @@ def upload():
 
     return jsonify({
 
-    "status": "success",
+        "status":"success",
 
-    "message": "Data Stored Successfully",
+        "message":"Data Stored Successfully",
 
-    "health_score": health_score,
+        "road_id":road_id,
 
-    "road_health": road_health,
+        "road_name":road_name,
 
-    "vibration": vibration,
+        "segment_number":segment_number,
 
-    "road_name": road_name,
+        "health_score":health_score,
 
-    "area": area,
+        "road_health":road_health,
 
-    "city": city,
+        "vibration":vibration
 
-    "speed": speed,
-
-    "latitude": latitude,
-
-    "longitude": longitude
-
-})
+    })
 @app.route("/view")
 
 def view():
@@ -1215,22 +1415,20 @@ def road_segments():
 
     cur.execute("""
         SELECT
-            latitude,
-            longitude,
-            health_score,
-            road_health,
-            road_name,
-            area,
-            city,
-            speed,
-            vibration,
-            timestamp
-
-        FROM road_data
-
-        ORDER BY id DESC
-
-        LIMIT 300
+road_id,
+road_geometry,
+health_score,
+road_health,
+road_name,
+area,
+city,
+speed,
+vibration,
+timestamp
+FROM road_data
+GROUP BY road_id
+ORDER BY id DESC
+LIMIT 100
     """)
 
     rows = cur.fetchall()
@@ -1242,9 +1440,194 @@ def road_segments():
 
     return jsonify([dict(row) for row in rows])
 
+# =====================================================
+# ROAD HEALTH AGGREGATION API
+# =====================================================
+
+
+@app.route("/road_health_map")
+def road_health_map():
+
+    conn = sqlite3.connect(DATABASE)
+
+    conn.row_factory = sqlite3.Row
+
+    cur = conn.cursor()
+
+
+    cur.execute("""
+    
+    SELECT
+
+        road_id,
+
+        road_name,
+
+        road_geometry,
+
+        AVG(health_score) AS average_health,
+
+        COUNT(*) AS total_scans,
+
+        MAX(timestamp) AS last_update
+
+
+    FROM road_data
+
+
+    WHERE road_id IS NOT NULL
+
+
+    GROUP BY road_id
+
+
+    ORDER BY last_update DESC
+
+
+    """)
+
+
+    rows = cur.fetchall()
+
+
+    conn.close()
+
+
+
+    roads = []
+
+
+
+    for row in rows:
+
+
+        health = row["average_health"]
+
+
+
+        if health >= 90:
+
+            status = "Excellent 🟢"
+
+
+        elif health >= 70:
+
+            status = "Good 🟢"
+
+
+        elif health >= 40:
+
+            status = "Moderate 🟠"
+
+
+        else:
+
+            status = "Poor 🔴"
+
+
+
+        roads.append({
+
+
+            "road_id":
+            row["road_id"],
+
+
+            "road_name":
+            row["road_name"],
+
+
+            "average_health":
+            round(health,2),
+
+
+            "total_scans":
+            row["total_scans"],
+
+
+            "status":
+            status,
+
+
+            "last_update":
+            row["last_update"],
+
+
+            "geometry":
+            json.loads(
+                row["road_geometry"]
+            )
+
+
+        })
+
+
+
+    return jsonify(roads)
+
 # ==========================================
 # MAP PAGE
 # ==========================================
+
+@app.route("/road_geometry")
+def road_geometry():
+
+    conn = sqlite3.connect(DATABASE)
+
+    conn.row_factory = sqlite3.Row
+
+    cur = conn.cursor()
+
+
+    cur.execute("""
+    SELECT
+        road_id,
+        road_name,
+        road_geometry,
+        health_score,
+        road_health
+
+    FROM road_data
+
+    WHERE geometry_cached=1
+
+    ORDER BY id DESC
+
+    LIMIT 1
+    """)
+
+
+    row = cur.fetchone()
+
+
+    conn.close()
+
+
+    if row is None:
+
+        return jsonify({
+
+            "status":"error",
+            "message":"No road geometry found"
+
+        })
+
+
+    return jsonify({
+
+        "road_id": row["road_id"],
+
+        "road_name": row["road_name"],
+
+        "health_score": row["health_score"],
+
+        "road_health": row["road_health"],
+
+        "geometry": json.loads(
+            row["road_geometry"]
+        )
+
+    })
 
 
 @app.route("/map")
