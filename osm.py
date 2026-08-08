@@ -31,7 +31,7 @@ def get_nearest_road(latitude, longitude):
         "lat": latitude,
         "lon": longitude,
         "format": "json",
-        "zoom":18
+        "zoom": 18
 
     }
 
@@ -51,31 +51,31 @@ def get_nearest_road(latitude, longitude):
     )
 
 
-    data=response.json()
+    data = response.json()
 
 
     print("\n===== OSM RESPONSE =====")
-
     print(data)
 
 
+    osm_id = data.get("osm_id")
 
-    osm_id=data.get("osm_id")
 
+    # Extract road name from address first, then top-level name
+    address = data.get("address", {})
 
-    road_name=data.get(
-        "name",
-        "Unknown Road"
+    road_name = (
+        address.get("road")
+        or data.get("name")
+        or "Unknown Road"
     )
 
 
     return {
 
+        "road_id": osm_id,
 
-        "road_id":osm_id,
-
-        "road_name":road_name
-
+        "road_name": road_name
 
     }
 
@@ -83,7 +83,7 @@ def get_nearest_road(latitude, longitude):
 
 
 # =====================================
-# GET ROAD GEOMETRY
+# GET ROAD GEOMETRY (raw XML)
 # =====================================
 
 def get_road_geometry(osm_id):
@@ -107,7 +107,7 @@ def get_road_geometry(osm_id):
 
 
 
-    response=requests.get(url)
+    response = requests.get(url)
 
 
 
@@ -127,9 +127,13 @@ def get_road_geometry(osm_id):
 
 
 
-
 # =====================================
 # CONVERT OSM XML TO ROAD GEOMETRY
+#
+# Fix: respect the <way><nd ref=.../>
+# ordering so the geometry follows the
+# actual road direction instead of
+# returning nodes in arbitrary order.
 # =====================================
 
 def parse_road_geometry(xml_data):
@@ -139,35 +143,27 @@ def parse_road_geometry(xml_data):
 
         root = ET.fromstring(xml_data)
 
+        # ── 1. Build a dict of all nodes: id → [lat, lon]
+        node_map = {}
+        for node in root.findall("node"):
+            nid  = node.attrib["id"]
+            lat  = float(node.attrib["lat"])
+            lon  = float(node.attrib["lon"])
+            node_map[nid] = [lat, lon]
+
+        # ── 2. Find the <way> element and read its nd refs in order
+        way = root.find("way")
+        if way is None:
+            # fallback: return nodes in arbitrary order
+            return list(node_map.values())
 
         geometry = []
-
-
-        for node in root.findall("node"):
-
-
-            lat = float(
-                node.attrib["lat"]
-            )
-
-
-            lon = float(
-                node.attrib["lon"]
-            )
-
-
-            geometry.append(
-                [
-                    lat,
-                    lon
-                ]
-            )
-
-
+        for nd in way.findall("nd"):
+            ref = nd.attrib.get("ref")
+            if ref and ref in node_map:
+                geometry.append(node_map[ref])
 
         return geometry
-
-
 
     except Exception as e:
 
@@ -176,21 +172,29 @@ def parse_road_geometry(xml_data):
             e
         )
 
-
         return []
+
+
+# =====================================
+# CREATE SEGMENTS FROM COMPLETE GEOMETRY
+#
+# Each consecutive pair of points is
+# one segment, so curved roads are
+# fully represented.
+# =====================================
 
 def create_road_segments(geometry):
 
     segments = []
 
 
-    for i in range(len(geometry)-1):
+    for i in range(len(geometry) - 1):
 
         segment = [
 
             geometry[i],
 
-            geometry[i+1]
+            geometry[i + 1]
 
         ]
 
@@ -199,24 +203,24 @@ def create_road_segments(geometry):
 
 
     return segments
+
+
+# =====================================
+# SAVE ROAD SEGMENTS TO DATABASE
+# =====================================
+
 def save_road_segments(
         road_id,
         road_name,
         segments
 ):
 
-    import sqlite3
-    import json
-
-    DATABASE = r"C:\AI_Based_Road_Assessment_System\data\database.db"
-
-
     conn = sqlite3.connect(DATABASE)
 
     cur = conn.cursor()
 
 
-    for index,segment in enumerate(segments):
+    for index, segment in enumerate(segments):
 
         cur.execute(
         """
@@ -257,54 +261,108 @@ def save_road_segments(
 
 
     print(
-    "✓ Road segments saved:",
+    "[OK] Road segments saved:",
     len(segments)
     )
 
+
 # ==========================================
-# FIND NEAREST ROAD SEGMENT
+# HAVERSINE DISTANCE
 # ==========================================
 
 def calculate_distance(lat1, lon1, lat2, lon2):
-
     """
-    Calculate distance between two GPS points
+    Calculate distance in metres between two GPS points
+    using the Haversine formula.
     """
 
-    R = 6371000  # Earth radius in meters
+    R = 6371000  # Earth radius in metres
 
     phi1 = math.radians(lat1)
     phi2 = math.radians(lat2)
 
-    dphi = math.radians(lat2-lat1)
-    dlambda = math.radians(lon2-lon1)
+    dphi    = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
 
 
     a = (
-        math.sin(dphi/2)**2
+        math.sin(dphi / 2) ** 2
         +
         math.cos(phi1)
         *
         math.cos(phi2)
         *
-        math.sin(dlambda/2)**2
+        math.sin(dlambda / 2) ** 2
     )
 
 
     c = 2 * math.atan2(
         math.sqrt(a),
-        math.sqrt(1-a)
+        math.sqrt(1 - a)
     )
 
 
-    return R*c
+    return R * c
 
 
+# ==========================================
+# POINT-TO-SEGMENT PERPENDICULAR DISTANCE
+#
+# Returns the shortest distance from point P
+# to the line segment (A→B).  Falls back to
+# distance to the nearer endpoint when the
+# perpendicular foot lies outside the segment.
+# ==========================================
+
+def _point_to_segment_distance(p_lat, p_lon, a_lat, a_lon, b_lat, b_lon):
+    """
+    Planar approximation (accurate enough for short road segments).
+    Converts degrees to approximate metres using equirectangular.
+    """
+    # degrees → metres (equirectangular)
+    cos_lat = math.cos(math.radians(p_lat))
+
+    ax = a_lon * cos_lat * 111320.0
+    ay = a_lat * 110540.0
+    bx = b_lon * cos_lat * 111320.0
+    by = b_lat * 110540.0
+    px = p_lon * cos_lat * 111320.0
+    py = p_lat * 110540.0
+
+    dx = bx - ax
+    dy = by - ay
+
+    seg_len_sq = dx * dx + dy * dy
+
+    if seg_len_sq == 0:
+        # A and B are the same point
+        return math.hypot(px - ax, py - ay)
+
+    # Parameter t: projection of P onto AB
+    t = ((px - ax) * dx + (py - ay) * dy) / seg_len_sq
+    t = max(0.0, min(1.0, t))
+
+    proj_x = ax + t * dx
+    proj_y = ay + t * dy
+
+    return math.hypot(px - proj_x, py - proj_y)
+
+
+# ==========================================
+# FIND NEAREST ROAD SEGMENT
+#
+# Changes vs. old version:
+#   • Measures perpendicular distance to the
+#     whole segment line (not just start point)
+#   • Default tolerance raised to 75 m
+#   • Returns only ONE nearest segment
+# ==========================================
 
 def find_nearest_segment(
         latitude,
         longitude,
-        road_id
+        road_id,
+        max_distance=75.0
 ):
 
     conn = sqlite3.connect(
@@ -343,7 +401,7 @@ def find_nearest_segment(
 
 
 
-    nearest_segment = None
+    nearest_segment  = None
 
     minimum_distance = float("inf")
 
@@ -351,26 +409,21 @@ def find_nearest_segment(
 
     for segment in segments:
 
-
         segment_number = segment[0]
 
         geometry = json.loads(
             segment[1]
         )
 
+        # Each stored segment is [start_point, end_point]
+        # where each point is [lat, lon]
+        a_lat, a_lon = geometry[0][0], geometry[0][1]
+        b_lat, b_lon = geometry[1][0], geometry[1][1]
 
-        # segment start point
-
-        seg_lat = geometry[0][0]
-
-        seg_lon = geometry[0][1]
-
-
-        distance = calculate_distance(
-            latitude,
-            longitude,
-            seg_lat,
-            seg_lon
+        distance = _point_to_segment_distance(
+            latitude, longitude,
+            a_lat,    a_lon,
+            b_lat,    b_lon
         )
 
 
@@ -390,11 +443,17 @@ def find_nearest_segment(
 
     print(
         "Distance:",
-        round(minimum_distance,2),
-        "meters"
+        round(minimum_distance, 2),
+        "metres"
     )
 
     print("==============================")
 
+    if minimum_distance > max_distance:
+        print(
+            f"[WARN] Segment distance {round(minimum_distance, 2)}m "
+            f"exceeds max limit of {max_distance}m. Ignoring update."
+        )
+        return None
 
     return nearest_segment
