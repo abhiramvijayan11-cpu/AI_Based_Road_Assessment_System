@@ -1,67 +1,133 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Road Health Map</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- =====================================================
+         LEAFLET CSS
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet/dist/leaflet.css"
+    >
+
+
+    <!-- =====================================================
+         GOOGLE FONT
+    ====================================================== -->
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
 
     <style>
+
+        /* =====================================================
+           GLOBAL
+        ====================================================== */
+
         * {
             box-sizing: border-box;
         }
 
+
         html,
         body {
+
             margin: 0;
+
             padding: 0;
+
+            width: 100%;
+
             height: 100%;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: #121212;
+
+            font-family:
+                'Inter',
+                system-ui,
+                -apple-system,
+                sans-serif;
+
+            background: #121212;
+
             color: #e0e0e0;
+
         }
+
+
+        /* =====================================================
+           MAP
+        ====================================================== */
 
         #map {
-            height: 100vh;
+
             width: 100%;
+
+            height: 100vh;
+
             z-index: 1;
+
         }
 
-        /* ==========================================
-           LEGEND
-        ========================================== */
+
+        /* =====================================================
+           ROAD HEALTH LEGEND
+        ====================================================== */
 
         .legend-card {
+
             position: absolute;
+
             top: 20px;
+
             right: 20px;
+
             z-index: 1000;
 
-            background: rgba(20, 24, 33, 0.88);
-
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 255px;
 
             padding: 16px;
 
             border-radius: 12px;
 
+            background:
+                rgba(20, 24, 33, 0.92);
+
+            backdrop-filter:
+                blur(12px);
+
+            -webkit-backdrop-filter:
+                blur(12px);
+
+            border:
+                1px solid rgba(255,255,255,0.10);
+
             box-shadow:
-                0 8px 32px rgba(0, 0, 0, 0.37);
+                0 8px 32px rgba(0,0,0,0.37);
 
             color: #ffffff;
 
-            min-width: 240px;
         }
 
+
         .legend-card h4 {
-            margin: 0 0 10px 0;
+
+            margin:
+                0 0 12px 0;
 
             font-size: 14px;
 
@@ -72,174 +138,412 @@
             text-transform: uppercase;
 
             color: #94a3b8;
+
         }
 
+
         .legend-item {
+
             display: flex;
 
             align-items: center;
 
-            margin-bottom: 7px;
+            margin-bottom: 8px;
 
             font-size: 13px;
+
+            color: #e2e8f0;
+
         }
+
 
         .legend-item:last-child {
+
             margin-bottom: 0;
+
         }
 
+
         .color-badge {
-            width: 22px;
+
+            width: 24px;
 
             height: 7px;
 
-            border-radius: 4px;
-
             margin-right: 10px;
 
+            border-radius: 5px;
+
             display: inline-block;
+
         }
 
-        /* ==========================================
+
+        /* =====================================================
+           MAP STATUS CARD
+        ====================================================== */
+
+        .map-status {
+
+            position: absolute;
+
+            left: 20px;
+
+            bottom: 20px;
+
+            z-index: 1000;
+
+            padding:
+                10px 14px;
+
+            border-radius: 10px;
+
+            background:
+                rgba(20,24,33,0.92);
+
+            backdrop-filter:
+                blur(10px);
+
+            -webkit-backdrop-filter:
+                blur(10px);
+
+            border:
+                1px solid rgba(255,255,255,0.10);
+
+            box-shadow:
+                0 8px 24px rgba(0,0,0,0.35);
+
+            font-size: 12px;
+
+            color: #cbd5e1;
+
+        }
+
+
+        .status-dot {
+
+            display: inline-block;
+
+            width: 8px;
+
+            height: 8px;
+
+            margin-right: 7px;
+
+            border-radius: 50%;
+
+            background: #22c55e;
+
+        }
+
+
+        /* =====================================================
            POPUP
-        ========================================== */
+        ====================================================== */
 
         .leaflet-popup-content-wrapper {
+
             background: #1e293b;
 
             color: #f8fafc;
 
             border-radius: 10px;
 
-            box-shadow:
-                0 10px 25px rgba(0, 0, 0, 0.5);
-
             border:
-                1px solid rgba(255, 255, 255, 0.1);
+                1px solid rgba(255,255,255,0.10);
+
+            box-shadow:
+                0 10px 25px rgba(0,0,0,0.50);
 
             padding: 4px;
+
         }
+
 
         .leaflet-popup-tip {
+
             background: #1e293b;
+
         }
 
+
+        .leaflet-popup-content {
+
+            margin: 10px 12px;
+
+        }
+
+
         .info-box {
-            padding: 8px 12px;
+
+            padding: 4px 2px;
+
+            min-width: 230px;
 
             font-size: 13px;
 
             line-height: 1.5;
+
         }
 
+
         .info-box h3 {
-            margin: 0 0 8px 0;
+
+            margin:
+                0 0 10px 0;
+
+            padding-bottom: 7px;
 
             font-size: 15px;
+
+            font-weight: 700;
 
             color: #38bdf8;
 
             border-bottom:
-                1px solid rgba(255, 255, 255, 0.1);
+                1px solid rgba(255,255,255,0.10);
 
-            padding-bottom: 6px;
         }
 
+
         .info-row {
+
             display: flex;
 
             justify-content: space-between;
 
+            align-items: flex-start;
+
             gap: 20px;
 
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+
         }
 
+
         .info-label {
+
             color: #94a3b8;
 
             font-weight: 500;
+
+            white-space: nowrap;
+
         }
+
 
         .info-val {
-            font-weight: 600;
 
             color: #f1f5f9;
+
+            font-weight: 600;
+
+            text-align: right;
+
         }
+
+
+        /* =====================================================
+           MOBILE
+        ====================================================== */
+
+        @media (max-width: 600px) {
+
+            .legend-card {
+
+                top: 10px;
+
+                right: 10px;
+
+                min-width: 215px;
+
+                padding: 12px;
+
+            }
+
+
+            .legend-item {
+
+                font-size: 11px;
+
+            }
+
+
+            .map-status {
+
+                left: 10px;
+
+                bottom: 10px;
+
+                font-size: 11px;
+
+            }
+
+        }
+
     </style>
+
 </head>
 
 
 <body>
 
+
+    <!-- =====================================================
+         MAP
+    ====================================================== -->
+
     <div id="map"></div>
 
 
-    <!-- ==========================================
+    <!-- =====================================================
          ROAD HEALTH LEGEND
-    =========================================== -->
+    ====================================================== -->
 
     <div class="legend-card">
 
-        <h4>Road Health Index</h4>
+        <h4>
+            Road Health Index
+        </h4>
+
 
         <div class="legend-item">
-            <span class="color-badge" style="background:#22C55E;"></span>
+
+            <span
+                class="color-badge"
+                style="background:#22C55E;"
+            ></span>
+
             Excellent (90–100%)
+
         </div>
 
+
         <div class="legend-item">
-            <span class="color-badge" style="background:#84CC16;"></span>
+
+            <span
+                class="color-badge"
+                style="background:#84CC16;"
+            ></span>
+
             Good (75–89%)
+
         </div>
 
+
         <div class="legend-item">
-            <span class="color-badge" style="background:#FACC15;"></span>
+
+            <span
+                class="color-badge"
+                style="background:#FACC15;"
+            ></span>
+
             Slight Damage (60–74%)
+
         </div>
 
+
         <div class="legend-item">
-            <span class="color-badge" style="background:#F97316;"></span>
+
+            <span
+                class="color-badge"
+                style="background:#F97316;"
+            ></span>
+
             Moderate Damage (40–59%)
+
         </div>
 
+
         <div class="legend-item">
-            <span class="color-badge" style="background:#EF4444;"></span>
+
+            <span
+                class="color-badge"
+                style="background:#EF4444;"
+            ></span>
+
             Severe Damage (0–39%)
+
+        </div>
+
+
+        <div class="legend-item">
+
+            <span
+                class="color-badge"
+                style="background:#64748B;"
+            ></span>
+
+            Unscanned
+
         </div>
 
     </div>
 
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- =====================================================
+         MAP STATUS
+    ====================================================== -->
+
+    <div class="map-status">
+
+        <span class="status-dot"></span>
+
+        <span id="mapStatus">
+            Loading road history...
+        </span>
+
+    </div>
+
+
+    <!-- =====================================================
+         LEAFLET JS
+    ====================================================== -->
+
+    <script
+        src="https://unpkg.com/leaflet/dist/leaflet.js"
+    ></script>
 
 
     <script>
 
-        // =====================================
-        // CREATE MAP
-        // =====================================
+
+        /* =====================================================
+           CREATE MAP
+        ====================================================== */
 
         const map = L.map("map").setView(
+
             [9.96768, 76.32989],
+
             16
+
         );
 
 
+        /* =====================================================
+           OPENSTREETMAP
+        ====================================================== */
+
         L.tileLayer(
+
             "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+
             {
+
                 maxZoom: 19,
 
                 attribution:
                     "© OpenStreetMap contributors"
+
             }
+
         ).addTo(map);
 
 
-        // =====================================
-        // VARIABLES
-        // =====================================
+        /* =====================================================
+           VARIABLES
+        ====================================================== */
 
         let roadLayers = [];
 
@@ -248,285 +552,631 @@
         let hasCenteredMap = false;
 
 
-        // =====================================
-        // HEALTH COLOR
-        // =====================================
+        /* =====================================================
+           HEALTH COLOR
+        ====================================================== */
 
         function getRoadColor(score) {
 
             score = Number(score);
 
-            if (score >= 90)
+
+            if (score >= 90) {
+
                 return "#22C55E";
 
-            if (score >= 75)
+            }
+
+
+            if (score >= 75) {
+
                 return "#84CC16";
 
-            if (score >= 60)
+            }
+
+
+            if (score >= 60) {
+
                 return "#FACC15";
 
-            if (score >= 40)
+            }
+
+
+            if (score >= 40) {
+
                 return "#F97316";
 
+            }
+
+
             return "#EF4444";
+
         }
 
 
-        // =====================================
-        // LOAD ONLY SCANNED ROAD SEGMENTS
-        // =====================================
+        /* =====================================================
+           MAP STATUS
+        ====================================================== */
+
+        function setMapStatus(message) {
+
+            const statusElement =
+                document.getElementById("mapStatus");
+
+
+            if (statusElement) {
+
+                statusElement.textContent =
+                    message;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           CLEAR OLD ROAD LAYERS
+        ====================================================== */
+
+        function clearRoadLayers() {
+
+            roadLayers.forEach(
+
+                function(layer) {
+
+                    if (
+                        map.hasLayer(layer)
+                    ) {
+
+                        map.removeLayer(layer);
+
+                    }
+
+                }
+
+            );
+
+
+            roadLayers = [];
+
+        }
+
+
+        /* =====================================================
+           LOAD HISTORICAL ROAD HEALTH
+        ====================================================== */
 
         function loadRoadHealth() {
+
+            console.log(
+                "Loading historical road health..."
+            );
+
+
+            setMapStatus(
+                "Loading scanned road history..."
+            );
+
 
             /*
              * IMPORTANT:
              *
-             * We use the current map center and
-             * only search within 50 metres.
+             * We intentionally DO NOT send:
              *
-             * This prevents roads far away from
-             * appearing on the map.
+             * latitude
+             * longitude
+             * radius
+             *
+             * to the API.
+             *
+             * Therefore the backend returns ALL
+             * previously scanned road segments.
              */
 
-            let center = map.getCenter();
+
+            fetch(
+                "/api/road-segments"
+            )
 
 
-            let url =
-                `/api/road-segments` +
-                `?latitude=${center.lat}` +
-                `&longitude=${center.lng}` +
-                `&radius=0.05`;
+            .then(
+
+                function(response) {
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            "HTTP " +
+                            response.status
+                        );
+
+                    }
 
 
-            fetch(url)
+                    return response.json();
 
-                .then(response => response.json())
+                }
 
-                .then(segments => {
+            )
+
+
+            .then(
+
+                function(segments) {
+
 
                     console.log(
-                        "Loaded Road Segments:",
+                        "Road segments received:",
                         segments
                     );
 
 
-                    // ---------------------------------
-                    // REMOVE PREVIOUS ROAD MARKINGS
-                    // ---------------------------------
+                    /* -----------------------------------------
+                       CLEAR PREVIOUS MARKINGS
+                    ----------------------------------------- */
 
-                    roadLayers.forEach(layer => {
-
-                        map.removeLayer(layer);
-
-                    });
+                    clearRoadLayers();
 
 
-                    roadLayers = [];
-
-
-                    // ---------------------------------
-                    // NOTHING TO DISPLAY
-                    // ---------------------------------
+                    /* -----------------------------------------
+                       VALIDATE RESPONSE
+                    ----------------------------------------- */
 
                     if (
-                        !segments ||
+                        !Array.isArray(segments)
+                    ) {
+
+                        throw new Error(
+                            "API response is not an array"
+                        );
+
+                    }
+
+
+                    /* -----------------------------------------
+                       NO SCANNED DATA
+                    ----------------------------------------- */
+
+                    if (
                         segments.length === 0
                     ) {
+
+                        setMapStatus(
+                            "No scanned road segments found"
+                        );
+
+                        console.log(
+                            "No road segments returned"
+                        );
 
                         return;
 
                     }
 
 
-                    // ---------------------------------
-                    // DISPLAY SCANNED SEGMENTS
-                    // ---------------------------------
-
-                    segments.forEach(segment => {
+                    let displayedCount = 0;
 
 
-                        if (
-                            !segment.geometry ||
-                            segment.geometry.length < 2
-                        ) {
+                    /* -----------------------------------------
+                       DRAW EACH SCANNED SEGMENT
+                    ----------------------------------------- */
 
-                            return;
+                    segments.forEach(
 
-                        }
+                        function(segment) {
 
 
-                        // ---------------------------------
-                        // GET HEALTH COLOR
-                        // ---------------------------------
+                            /* =================================
+                               GEOMETRY CHECK
+                            ================================= */
 
-                        let healthColor =
-                            getRoadColor(
-                                segment.average_health
+                            if (
+
+                                !segment.geometry ||
+
+                                !Array.isArray(
+                                    segment.geometry
+                                ) ||
+
+                                segment.geometry.length < 2
+
+                            ) {
+
+                                console.warn(
+                                    "Skipping invalid geometry:",
+                                    segment
+                                );
+
+                                return;
+
+                            }
+
+
+                            /* =================================
+                               SCAN COUNT
+                            ================================= */
+
+                            const scanCount =
+
+                                Number(
+                                    segment.total_scans || 0
+                                );
+
+
+                            /*
+                             * total_scans = 0 means
+                             * the road has never been scanned.
+                             *
+                             * Do NOT display it as healthy.
+                             */
+
+                            if (
+                                scanCount <= 0
+                            ) {
+
+                                console.log(
+
+                                    "Skipping unscanned segment:",
+
+                                    segment.road_name,
+
+                                    segment.segment_number
+
+                                );
+
+                                return;
+
+                            }
+
+
+                            /* =================================
+                               HEALTH SCORE
+                            ================================= */
+
+                            const health =
+
+                                Number(
+                                    segment.average_health
+                                );
+
+
+                            if (
+                                !Number.isFinite(
+                                    health
+                                )
+                            ) {
+
+                                console.warn(
+
+                                    "Invalid health:",
+
+                                    segment
+
+                                );
+
+                                return;
+
+                            }
+
+
+                            /* =================================
+                               HEALTH COLOR
+                            ================================= */
+
+                            const healthColor =
+
+                                getRoadColor(
+                                    health
+                                );
+
+
+                            /* =================================
+                               DRAW ROAD SEGMENT
+                            ================================= */
+
+                            const colorLine =
+
+                                L.polyline(
+
+                                    segment.geometry,
+
+                                    {
+
+                                        color:
+                                            healthColor,
+
+                                        weight:
+                                            8,
+
+                                        opacity:
+                                            0.95,
+
+                                        lineCap:
+                                            "round",
+
+                                        lineJoin:
+                                            "round"
+
+                                    }
+
+                                ).addTo(map);
+
+
+                            /* =================================
+                               POPUP
+                            ================================= */
+
+                            colorLine.bindPopup(`
+
+                                <div class="info-box">
+
+                                    <h3>
+
+                                        🚧
+
+                                        ${
+                                            segment.road_name ||
+                                            "Unknown Road"
+                                        }
+
+                                    </h3>
+
+
+                                    <div class="info-row">
+
+                                        <span class="info-label">
+                                            Segment:
+                                        </span>
+
+                                        <span class="info-val">
+                                            #${
+                                                segment.segment_number
+                                            }
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="info-row">
+
+                                        <span class="info-label">
+                                            Road ID:
+                                        </span>
+
+                                        <span class="info-val">
+                                            ${
+                                                segment.road_id
+                                            }
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="info-row">
+
+                                        <span class="info-label">
+                                            Health:
+                                        </span>
+
+                                        <span
+                                            class="info-val"
+                                            style="
+                                                color:${healthColor};
+                                            "
+                                        >
+                                            ${
+                                                health.toFixed(2)
+                                            }%
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="info-row">
+
+                                        <span class="info-label">
+                                            Status:
+                                        </span>
+
+                                        <span class="info-val">
+                                            ${
+                                                segment.status ||
+                                                "Unknown"
+                                            }
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="info-row">
+
+                                        <span class="info-label">
+                                            Total Scans:
+                                        </span>
+
+                                        <span class="info-val">
+                                            ${
+                                                scanCount
+                                            }
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="info-row">
+
+                                        <span class="info-label">
+                                            Last Updated:
+                                        </span>
+
+                                        <span class="info-val">
+                                            ${
+                                                segment.last_update ||
+                                                "Unknown"
+                                            }
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            `);
+
+
+                            /* =================================
+                               SAVE LAYER
+                            ================================= */
+
+                            roadLayers.push(
+                                colorLine
                             );
 
 
-                        // ---------------------------------
-                        // DRAW ONLY SCANNED ROAD
-                        // ---------------------------------
+                            displayedCount++;
 
-                        let colorLine =
-                            L.polyline(
-                                segment.geometry,
-                                {
-                                    color: healthColor,
+                        }
 
-                                    weight: 7,
-
-                                    opacity: 0.95,
-
-                                    lineCap: "round",
-
-                                    lineJoin: "round"
-                                }
-                            ).addTo(map);
-
-
-                        // ---------------------------------
-                        // POPUP
-                        // ---------------------------------
-
-                        colorLine.bindPopup(`
-
-                            <div class="info-box">
-
-                                <h3>
-                                    🚧
-                                    ${segment.road_name || "Unknown Road"}
-                                </h3>
-
-
-                                <div class="info-row">
-
-                                    <span class="info-label">
-                                        Segment:
-                                    </span>
-
-                                    <span class="info-val">
-                                        #${segment.segment_number}
-                                    </span>
-
-                                </div>
-
-
-                                <div class="info-row">
-
-                                    <span class="info-label">
-                                        Road ID:
-                                    </span>
-
-                                    <span class="info-val">
-                                        ${segment.road_id}
-                                    </span>
-
-                                </div>
-
-
-                                <div class="info-row">
-
-                                    <span class="info-label">
-                                        Health:
-                                    </span>
-
-                                    <span
-                                        class="info-val"
-                                        style="color:${healthColor}"
-                                    >
-                                        ${Number(
-                            segment.average_health
-                        ).toFixed(2)}%
-                                    </span>
-
-                                </div>
-
-
-                                <div class="info-row">
-
-                                    <span class="info-label">
-                                        Status:
-                                    </span>
-
-                                    <span class="info-val">
-                                        ${segment.status || "Unknown"}
-                                    </span>
-
-                                </div>
-
-
-                                <div class="info-row">
-
-                                    <span class="info-label">
-                                        Total Scans:
-                                    </span>
-
-                                    <span class="info-val">
-                                        ${segment.total_scans || 0}
-                                    </span>
-
-                                </div>
-
-
-                                <div class="info-row">
-
-                                    <span class="info-label">
-                                        Last Updated:
-                                    </span>
-
-                                    <span class="info-val">
-                                        ${segment.last_update || "Unknown"}
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                        `);
-
-
-                        // ---------------------------------
-                        // SAVE LAYER
-                        // ---------------------------------
-
-                        roadLayers.push(colorLine);
-
-                    });
-
-                })
-
-                .catch(err => {
-
-                    console.error(
-                        "Error loading road segments:",
-                        err
                     );
 
-                });
+
+                    /* -----------------------------------------
+                       UPDATE STATUS
+                    ----------------------------------------- */
+
+                    setMapStatus(
+
+                        displayedCount +
+                        " scanned road segment" +
+                        (
+                            displayedCount === 1
+                                ? ""
+                                : "s"
+                        ) +
+                        " displayed"
+
+                    );
+
+
+                    console.log(
+
+                        "Displayed:",
+                        displayedCount,
+                        "road segments"
+
+                    );
+
+                }
+
+            )
+
+
+            .catch(
+
+                function(error) {
+
+                    console.error(
+
+                        "Error loading road health:",
+                        error
+
+                    );
+
+
+                    setMapStatus(
+                        "Error loading road history"
+                    );
+
+                }
+
+            );
 
         }
 
 
-        // =====================================
-        // LIVE VEHICLE LOCATION
-        // =====================================
+        /* =====================================================
+           UPDATE VEHICLE LOCATION
+        ====================================================== */
 
         function updateVehicle() {
 
-            fetch("/latest_location")
+            fetch(
+                "/latest_location"
+            )
 
-                .then(response => response.json())
 
-                .then(point => {
+            .then(
+
+                function(response) {
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            "HTTP " +
+                            response.status
+                        );
+
+                    }
+
+
+                    return response.json();
+
+                }
+
+            )
+
+
+            .then(
+
+                function(point) {
+
+
+                    /* =========================================
+                       CHECK GPS
+                    ========================================= */
+
+                    if (
+
+                        point.latitude === null ||
+
+                        point.latitude === undefined ||
+
+                        point.longitude === null ||
+
+                        point.longitude === undefined
+
+                    ) {
+
+                        console.log(
+                            "GPS location unavailable"
+                        );
+
+                        return;
+
+                    }
+
+
+                    const latitude =
+                        Number(
+                            point.latitude
+                        );
+
+
+                    const longitude =
+                        Number(
+                            point.longitude
+                        );
 
 
                     if (
-                        point.latitude === null ||
-                        point.latitude === undefined ||
-                        point.longitude === null ||
-                        point.longitude === undefined
+
+                        !Number.isFinite(
+                            latitude
+                        ) ||
+
+                        !Number.isFinite(
+                            longitude
+                        )
+
                     ) {
 
                         return;
@@ -534,52 +1184,29 @@
                     }
 
 
-                    let position = [
-                        Number(point.latitude),
-                        Number(point.longitude)
+                    const position = [
+
+                        latitude,
+
+                        longitude
+
                     ];
 
 
-                    // ---------------------------------
-                    // CHECK WHETHER VEHICLE MOVED
-                    // ---------------------------------
+                    /* =========================================
+                       CENTER MAP ON FIRST GPS
+                    ========================================= */
 
-                    let moved = true;
-
-
-                    if (vehicleMarker !== null) {
-
-                        const oldPosition =
-                            vehicleMarker.getLatLng();
-
-
-                        const distance =
-                            map.distance(
-                                oldPosition,
-                                position
-                            );
-
-
-                        /*
-                         * Road map is updated only
-                         * after 5 metres of movement.
-                         */
-
-                        moved =
-                            distance >= 5;
-
-                    }
-
-
-                    // ---------------------------------
-                    // CENTER MAP ON FIRST LOCATION
-                    // ---------------------------------
-
-                    if (!hasCenteredMap) {
+                    if (
+                        !hasCenteredMap
+                    ) {
 
                         map.setView(
+
                             position,
+
                             16
+
                         );
 
                         hasCenteredMap = true;
@@ -587,22 +1214,31 @@
                     }
 
 
-                    // ---------------------------------
-                    // CREATE / MOVE VEHICLE MARKER
-                    // ---------------------------------
+                    /* =========================================
+                       CREATE VEHICLE MARKER
+                    ========================================= */
 
-                    if (vehicleMarker === null) {
+                    if (
+                        vehicleMarker === null
+                    ) {
 
                         vehicleMarker =
+
                             L.marker(
+
                                 position,
+
                                 {
+
                                     title:
                                         "Current Vehicle"
+
                                 }
+
                             ).addTo(map);
 
                     }
+
                     else {
 
                         vehicleMarker.setLatLng(
@@ -612,39 +1248,48 @@
                     }
 
 
-                    // ---------------------------------
-                    // UPDATE ROAD MARKING
-                    // ONLY AFTER MOVEMENT
-                    // ---------------------------------
+                    /* =========================================
+                       VEHICLE HEALTH
+                    ========================================= */
 
-                    if (moved) {
+                    const healthScore =
 
-                        loadRoadHealth();
+                        Number(
+                            point.health_score || 0
+                        );
 
-                    }
 
-
-                    // ---------------------------------
-                    // VEHICLE POPUP
-                    // ---------------------------------
+                    /* =========================================
+                       VEHICLE POPUP
+                    ========================================= */
 
                     vehicleMarker.bindPopup(`
 
                         <div class="info-box">
 
                             <h3>
-                                🚗 Live Scan Location
+
+                                🚗
+                                Live Scan Location
+
                             </h3>
 
 
                             <div class="info-row">
 
                                 <span class="info-label">
+
                                     Road:
+
                                 </span>
 
                                 <span class="info-val">
-                                    ${point.road_name || "Unknown"}
+
+                                    ${
+                                        point.road_name ||
+                                        "Unknown"
+                                    }
+
                                 </span>
 
                             </div>
@@ -653,11 +1298,18 @@
                             <div class="info-row">
 
                                 <span class="info-label">
+
                                     Status:
+
                                 </span>
 
                                 <span class="info-val">
-                                    ${point.road_health || "Unknown"}
+
+                                    ${
+                                        point.road_health ||
+                                        "Unknown"
+                                    }
+
                                 </span>
 
                             </div>
@@ -666,13 +1318,17 @@
                             <div class="info-row">
 
                                 <span class="info-label">
+
                                     Health:
+
                                 </span>
 
                                 <span class="info-val">
-                                    ${Number(
-                        point.health_score || 0
-                    ).toFixed(0)}%
+
+                                    ${
+                                        healthScore.toFixed(0)
+                                    }%
+
                                 </span>
 
                             </div>
@@ -681,14 +1337,21 @@
                             <div class="info-row">
 
                                 <span class="info-label">
+
                                     Speed:
+
                                 </span>
 
                                 <span class="info-val">
-                                    ${Number(
-                        point.speed || 0
-                    ).toFixed(2)}
+
+                                    ${
+                                        Number(
+                                            point.speed || 0
+                                        ).toFixed(2)
+                                    }
+
                                     km/h
+
                                 </span>
 
                             </div>
@@ -697,13 +1360,19 @@
                             <div class="info-row">
 
                                 <span class="info-label">
+
                                     Vibration:
+
                                 </span>
 
                                 <span class="info-val">
-                                    ${Number(
-                        point.vibration || 0
-                    ).toFixed(3)}
+
+                                    ${
+                                        Number(
+                                            point.vibration || 0
+                                        ).toFixed(3)
+                                    }
+
                                 </span>
 
                             </div>
@@ -712,44 +1381,96 @@
 
                     `);
 
-                })
+                }
 
-                .catch(err => {
+            )
+
+
+            .catch(
+
+                function(error) {
 
                     console.error(
-                        "Error fetching vehicle position:",
-                        err
+
+                        "Error fetching vehicle location:",
+
+                        error
+
                     );
 
-                });
+                }
+
+            );
 
         }
 
 
-        // =====================================
-        // INITIAL LOAD
-        // =====================================
+        /* =====================================================
+           INITIAL MAP LOAD
+        ====================================================== */
+
+        /*
+         * Load historical road markings immediately.
+         *
+         * This happens independently of the vehicle.
+         */
+
+        loadRoadHealth();
+
+
+        /* =====================================================
+           INITIAL VEHICLE LOCATION
+        ====================================================== */
 
         updateVehicle();
 
 
-        // =====================================
-        // AUTO UPDATE VEHICLE LOCATION
-        //
-        // IMPORTANT:
-        // Do NOT call loadRoadHealth() here.
-        //
-        // updateVehicle() decides whether the
-        // vehicle actually moved.
-        // =====================================
+        /* =====================================================
+           REFRESH HISTORICAL ROAD MARKINGS
+        ====================================================== */
 
-        setInterval(() => {
+        /*
+         * Every 10 seconds the map checks the database again.
+         *
+         * Previously scanned roads remain visible because
+         * the backend returns ALL scanned segments.
+         */
 
-            updateVehicle();
+        setInterval(
 
-        }, 5000);
+            function() {
+
+                loadRoadHealth();
+
+            },
+
+            10000
+
+        );
+
+
+        /* =====================================================
+           REFRESH VEHICLE LOCATION
+        ====================================================== */
+
+        /*
+         * Vehicle location is independent of road history.
+         */
+
+        setInterval(
+
+            function() {
+
+                updateVehicle();
+
+            },
+
+            5000
+
+        );
 
     </script>
+
 
 </body>
 
